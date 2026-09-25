@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudestorage-config
+  namespace: cloudestorage
+data:
+  PORT: "7070"
+  # true în producție (traficul intră prin TLS la un reverse proxy/ingress);
+  # dacă testezi temporar fără TLS în fața clusterului, pune "false" aici
+  COOKIE_SECURE: "true"
+  # frontend-ul e servit de același backend (același origin), deci această
+  # valoare contează doar dacă rulezi frontend-ul separat, în development
+  FRONTEND_ORIGIN: "http://localhost:5173"

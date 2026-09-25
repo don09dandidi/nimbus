@@ -1,0 +1,56 @@
+# O singură replică, intenționat — vezi nota din 01-pvc.yaml despre SQLite
+# și stocarea locală pe disc. Scalarea reală ar cere migrarea la o bază de
+# date server (Postgres) și stocare de fișiere partajată — pas planificat
+# pentru etapa 3, nu parte din MVP.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudestorage
+  namespace: cloudestorage
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate   # esențial cu RWO — evită două pod-uri care ating simultan același volum
+  selector:
+    matchLabels:
+      app: cloudestorage
+  template:
+    metadata:
+      labels:
+        app: cloudestorage
+    spec:
+      containers:
+        - name: cloudestorage
+          image: cloudestorage:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 7070
+          envFrom:
+            - configMapRef:
+                name: cloudestorage-config
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 7070
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 7070
+            initialDelaySeconds: 10
+            periodSeconds: 20
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: cloudestorage-data

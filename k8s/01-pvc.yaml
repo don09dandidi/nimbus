@@ -1,0 +1,16 @@
+# stochează SQLite, cheia de criptare AES și fișierele efective (criptate).
+# storageClassName "local-path" e cel implicit în K3s — leagă volumul de un
+# singur nod fizic, motiv pentru care aplicația rulează cu o singură replică
+# (SQLite + fișiere pe disc local nu suportă oricum scriere din mai multe pod-uri simultan)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cloudestorage-data
+  namespace: cloudestorage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi

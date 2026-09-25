@@ -1,0 +1,21 @@
+# Java / Maven
+backend/target/
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+
+# runtime data — nu se comite niciodată (DB, chei de criptare, fișiere userilor)
+data/
+backend/data/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+
+# Docker build artifacts locale
+*.tar
