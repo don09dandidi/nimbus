@@ -4,6 +4,7 @@ backend/target/
 # Node / frontend
 frontend/node_modules/
 frontend/dist/
+backend/public/
 
 # runtime data — nu se comite niciodată (DB, chei de criptare, fișiere userilor)
 data/

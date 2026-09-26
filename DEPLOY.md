@@ -2,12 +2,23 @@
 
 ## 0. Verifică local întâi (înainte de Docker/K8s)
 
+**Important:** cookie-ul de sesiune are `SameSite=Strict` — dacă rulezi frontend-ul separat
+(`npm run dev`, port 5173) și backend-ul pe alt port (7070), browserul **nu va trimite
+cookie-ul** între cele două origini diferite (te loghezi, dar orice cerere ulterioară
+pare "neautentificat"). Testează în schimb exact ca în producție — un singur origin:
+
 ```bash
-cd backend
+cd frontend
+npm install
+npm run build
+mkdir -p ../backend/public
+cp -r dist/* ../backend/public/
+
+cd ../backend
 mvn compile exec:java -Dexec.mainClass="com.cloudestorage.Main"
 ```
 
-Testează manual (register, login, upload, download) cu `curl` sau din frontend (`npm run dev` în `frontend/`, cu `VITE_API_URL=http://localhost:7070` într-un fișier `.env`).
+Deschide `http://localhost:7070` (nu 5173) și testează manual: register, login, upload, download.
 
 Abia după ce asta merge local, treci la pașii de mai jos.
 
