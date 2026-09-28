@@ -1,5 +1,8 @@
 package com.cloudestorage.repository;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -18,6 +21,13 @@ public class Database {
 
     // creează schema dacă nu există deja — idempotent, sigur de rulat la fiecare pornire
     public static void initSchema() {
+        // SQLite creează fișierul .sqlite, dar NU și folderul părinte — îl creăm noi întâi
+        try {
+            Files.createDirectories(Path.of(DB_PATH).getParent());
+        } catch (IOException e) {
+            throw new RuntimeException("Nu s-a putut crea directorul bazei de date: " + e.getMessage(), e);
+        }
+
         String[] statements = {
                 """
                 CREATE TABLE IF NOT EXISTS users (
