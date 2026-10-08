@@ -49,6 +49,12 @@ public class SessionService {
         return userRepository.findById(session.getUserId());
     }
 
+    // revocă sesiunea curentă (logout pe acest device); tokenul null/necunoscut e ignorat
+    public void revoke(String token) {
+        if (token == null) return;
+        sessionRepository.revokeByToken(token);
+    }
+
     public void revokeAllForUser(long userId) {
         sessionRepository.revokeAllForUser(userId);
     }

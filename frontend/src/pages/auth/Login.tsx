@@ -1,18 +1,17 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { AuthLayout } from './AuthLayout';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/apiClient';
 
-export function Login() {
-  const [email, setEmail] = useState('alex@example.com');
-  const [password, setPassword] = useState('password');
+export function Login({ onNavigateToRegister }: { onNavigateToRegister?: () => void }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { setIsAuthenticated } = useApp();
-  const navigate = useNavigate();
+  const { login } = useApp();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,9 +20,7 @@ export function Login() {
     try {
       // backend-ul foloseste "username", nu "email" — campul de UI ramane
       // "Email" ca sa nu schimbam designul, dar valoarea trimisa e username-ul
-      await api.login(email, password);
-      setIsAuthenticated(true);
-      navigate('/dashboard');
+      login(await api.login(email.trim(), password));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Autentificare eșuată');
     } finally {
@@ -39,7 +36,8 @@ export function Login() {
           <div className="relative">
             <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted-foreground)' }} />
             <input
-              type="email"
+              type="text"
+              autoComplete="username"
               value={email}
               onChange={e => setEmail(e.target.value)}
               className="w-full pl-9 pr-3 py-2.5 text-sm rounded-lg border outline-none transition-all"
@@ -81,7 +79,7 @@ export function Login() {
       </form>
       <p className="mt-6 text-center text-sm" style={{ color: 'var(--muted-foreground)' }}>
         Don't have an account?{' '}
-        <Link to="/register" className="font-medium" style={{ color: 'var(--primary)' }}>Create account</Link>
+        <button type="button" onClick={onNavigateToRegister} className="font-medium" style={{ color: 'var(--primary)' }}>Create account</button>
       </p>
     </AuthLayout>
   );

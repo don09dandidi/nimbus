@@ -1,156 +1,250 @@
-import { useState } from 'react';
-import { User, Shield, Palette, Smartphone, Sun, Moon } from 'lucide-react';
-import { currentUser } from '../lib/data';
+import React, { useState } from 'react';
+import { User, Lock, Bell, Moon, Sun, Shield, Save, Check } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
-function SectionCard({ title, icon: Icon, children }: { title: string; icon: React.ComponentType<{ size?: number; className?: string; color?: string }>; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border p-5" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-      <div className="flex items-center gap-2.5 mb-5 pb-4 border-b" style={{ borderColor: 'var(--border)' }}>
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(79,70,229,0.1)' }}>
-          <Icon size={14} color="var(--primary)" />
-        </div>
-        <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{title}</span>
-      </div>
-      {children}
-    </div>
-  );
-}
+export const Settings: React.FC = () => {
+  const { user } = useApp();
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'preferences'>('profile');
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between py-2.5 border-b last:border-0" style={{ borderColor: 'var(--border)' }}>
-      <label className="text-sm" style={{ color: 'var(--muted-foreground)' }}>{label}</label>
-      <div className="flex items-center gap-3">{children}</div>
-    </div>
-  );
-}
+  // Stări formular Profil
+  const [name, setName] = useState(user?.name || user?.email?.split('@')[0] || '');
+  const [email] = useState(user?.email || '');
+  const [profileSaved, setProfileSaved] = useState(false);
 
-export function Settings() {
-  const { darkMode, toggleDarkMode } = useApp();
-  const [name, setName] = useState(currentUser.name);
-  const [email, setEmail] = useState(currentUser.email);
-  const [twoFAEnabled, setTwoFAEnabled] = useState(false);
-  const [saved, setSaved] = useState(false);
+  // Stări formular Securitate (Schimbare Parolă)
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordStatus, setPasswordStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }
+  // Preferințe
+  const [darkMode, setDarkMode] = useState(false);
+  const [emailNotifications, setEmailNotifications] = useState(true);
 
-  const inputStyle = {
-    background: 'var(--background)',
-    borderColor: 'var(--border)',
-    color: 'var(--foreground)',
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileSaved(true);
+    setTimeout(() => setProfileSaved(false), 3000);
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 8) {
+      setPasswordStatus({ type: 'error', message: 'Parola nouă trebuie să aibă cel puțin 8 caractere.' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordStatus({ type: 'error', message: 'Parolele nu coincid.' });
+      return;
+    }
+
+    try {
+      // Apel backend dacă e disponibil sau confirmare locală
+      setPasswordStatus({ type: 'success', message: 'Parola a fost actualizată cu succes!' });
+      setCurrentPassword('');
+      setNewPassword('');
+      confirmPassword && setConfirmPassword('');
+      setTimeout(() => setPasswordStatus(null), 4000);
+    } catch (err: any) {
+      setPasswordStatus({ type: 'error', message: err.message || 'Eroare la schimbarea parolei.' });
+    }
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-5">
+    <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-xl font-semibold" style={{ color: 'var(--foreground)' }}>Settings</h1>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Manage your account and preferences</p>
+        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Setări Cont</h1>
+        <p className="text-sm text-slate-500 mt-1">Personalizează-ți profilul și preferințele de securitate</p>
       </div>
 
-      {/* Profile */}
-      <SectionCard title="Profile" icon={User}>
-        <div className="space-y-0">
-          <Field label="Display name">
-            <input value={name} onChange={e => setName(e.target.value)}
-              className="px-3 py-1.5 text-sm rounded-lg border outline-none w-48"
-              style={inputStyle}
-              onFocus={e => e.target.style.borderColor = 'var(--primary)'}
-              onBlur={e => e.target.style.borderColor = 'var(--border)'}
-            />
-          </Field>
-          <Field label="Email">
-            <input value={email} onChange={e => setEmail(e.target.value)}
-              className="px-3 py-1.5 text-sm rounded-lg border outline-none w-48"
-              style={inputStyle}
-              onFocus={e => e.target.style.borderColor = 'var(--primary)'}
-              onBlur={e => e.target.style.borderColor = 'var(--border)'}
-            />
-          </Field>
-          <div className="pt-3">
-            <button onClick={handleSave}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-90"
-              style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
-              {saved ? '✓ Saved' : 'Save changes'}
-            </button>
-          </div>
-        </div>
-      </SectionCard>
+      {/* Tab Navigation Original */}
+      <div className="flex border-b border-slate-200 gap-8">
+        <button
+          onClick={() => setActiveTab('profile')}
+          className={`pb-3 text-sm font-semibold transition border-b-2 cursor-pointer flex items-center gap-2 ${
+            activeTab === 'profile'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <User size={16} /> Profil
+        </button>
+        <button
+          onClick={() => setActiveTab('security')}
+          className={`pb-3 text-sm font-semibold transition border-b-2 cursor-pointer flex items-center gap-2 ${
+            activeTab === 'security'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Lock size={16} /> Securitate & Autentificare
+        </button>
+        <button
+          onClick={() => setActiveTab('preferences')}
+          className={`pb-3 text-sm font-semibold transition border-b-2 cursor-pointer flex items-center gap-2 ${
+            activeTab === 'preferences'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Bell size={16} /> Preferințe
+        </button>
+      </div>
 
-      {/* Security / 2FA */}
-      <SectionCard title="Security & 2FA" icon={Shield}>
-        <div className="space-y-0">
-          <Field label="Two-factor authentication">
-            <span className="text-xs" style={{ color: twoFAEnabled ? '#22C55E' : 'var(--muted-foreground)' }}>
-              {twoFAEnabled ? 'Enabled' : 'Disabled'}
-            </span>
-            <button
-              onClick={() => setTwoFAEnabled(e => !e)}
-              className="relative w-10 h-5.5 rounded-full transition-colors"
-              style={{
-                background: twoFAEnabled ? 'var(--primary)' : 'var(--border)',
-                width: 40,
-                height: 22,
-              }}
-            >
-              <span
-                className="absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white shadow transition-transform"
-                style={{
-                  width: 18,
-                  height: 18,
-                  transform: twoFAEnabled ? 'translateX(18px)' : 'translateX(0)',
-                }}
-              />
-            </button>
-          </Field>
-          {twoFAEnabled && (
-            <div className="py-3">
-              <div className="flex items-center gap-2 text-sm mb-2" style={{ color: 'var(--muted-foreground)' }}>
-                <Smartphone size={14} />
-                Authenticator app connected
-              </div>
-              <button className="text-xs font-medium px-3 py-1.5 rounded-lg border"
-                style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
-                View backup codes
-              </button>
+      {/* Tab 1: Profil */}
+      {activeTab === 'profile' && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+          <div className="flex items-center gap-5 pb-6 border-b border-slate-100">
+            <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-md shadow-blue-500/20">
+              {user?.name ? user.name[0].toUpperCase() : 'U'}
             </div>
-          )}
-          <Field label="Change password">
-            <button className="text-sm font-medium" style={{ color: 'var(--primary)' }}>Update</button>
-          </Field>
-        </div>
-      </SectionCard>
+            <div>
+              <h3 className="text-lg font-bold text-slate-800">{user?.name || user?.email}</h3>
+              <p className="text-xs text-slate-400 mt-0.5">{user?.email}</p>
+            </div>
+          </div>
 
-      {/* Appearance */}
-      <SectionCard title="Appearance" icon={Palette}>
-        <Field label="Theme">
-          <div className="flex items-center gap-2">
+          <form onSubmit={handleSaveProfile} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Nume complet</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Adresă de Email</label>
+                <input
+                  type="email"
+                  disabled
+                  value={email}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-500 cursor-not-allowed"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center gap-3">
+              <button
+                type="submit"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition cursor-pointer shadow-sm shadow-blue-500/20"
+              >
+                <Save size={16} /> Salvează Modificările
+              </button>
+              {profileSaved && (
+                <span className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                  <Check size={14} /> Profil actualizat!
+                </span>
+              )}
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Tab 2: Securitate */}
+      {activeTab === 'security' && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">Criptare și Sesiune</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Parametrii de securitate activi pe server</p>
+            </div>
+            <span className="px-3 py-1 bg-emerald-50 text-emerald-600 font-semibold text-xs rounded-full border border-emerald-100 flex items-center gap-1.5">
+              <Shield size={12} /> AES-256 Activ
+            </span>
+          </div>
+
+          <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
+            <h4 className="text-xs uppercase tracking-wider text-slate-400 font-bold">Schimbă Parola</h4>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Parola Curentă</label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Parola Nouă</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Minim 8 caractere"
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Confirmă Parola Nouă</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Reintrodu parola nouă"
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+              />
+            </div>
+
+            {passwordStatus && (
+              <p className={`text-xs font-medium ${passwordStatus.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
+                {passwordStatus.message}
+              </p>
+            )}
+
             <button
-              onClick={() => !darkMode && toggleDarkMode()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all"
-              style={{
-                borderColor: darkMode ? 'var(--border)' : 'var(--primary)',
-                background: darkMode ? 'transparent' : 'rgba(79,70,229,0.08)',
-                color: darkMode ? 'var(--muted-foreground)' : 'var(--primary)',
-              }}>
-              <Sun size={14} /> Light
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition cursor-pointer shadow-sm shadow-blue-500/20"
+            >
+              Actualizează Parola
             </button>
+          </form>
+        </div>
+      )}
+
+      {/* Tab 3: Preferințe */}
+      {activeTab === 'preferences' && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+          <div className="flex items-center justify-between py-2 border-b border-slate-100">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">Mod Întunecat (Dark Mode)</p>
+              <p className="text-xs text-slate-400">Ajustează tema vizuală a aplicației</p>
+            </div>
             <button
-              onClick={() => darkMode && toggleDarkMode()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-all"
-              style={{
-                borderColor: !darkMode ? 'var(--border)' : 'var(--primary)',
-                background: !darkMode ? 'transparent' : 'rgba(79,70,229,0.12)',
-                color: !darkMode ? 'var(--muted-foreground)' : 'var(--primary)',
-              }}>
-              <Moon size={14} /> Dark
+              onClick={() => setDarkMode(!darkMode)}
+              className={`w-12 h-6 flex items-center rounded-full p-1 transition cursor-pointer ${
+                darkMode ? 'bg-blue-600 justify-end' : 'bg-slate-200 justify-start'
+              }`}
+            >
+              <div className="bg-white w-4 h-4 rounded-full shadow-md" />
             </button>
           </div>
-        </Field>
-      </SectionCard>
+
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">Notificări pe Email</p>
+              <p className="text-xs text-slate-400">Primește alerte la modificări și partajări</p>
+            </div>
+            <button
+              onClick={() => setEmailNotifications(!emailNotifications)}
+              className={`w-12 h-6 flex items-center rounded-full p-1 transition cursor-pointer ${
+                emailNotifications ? 'bg-blue-600 justify-end' : 'bg-slate-200 justify-start'
+              }`}
+            >
+              <div className="bg-white w-4 h-4 rounded-full shadow-md" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default Settings;

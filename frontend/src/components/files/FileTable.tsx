@@ -1,153 +1,175 @@
-import { useState } from 'react';
-import { MoreHorizontal, Download, History, MessageSquare, Trash2, Eye } from 'lucide-react';
-import type { FileItem } from '../../lib/types';
-import { FileIcon } from '../ui/FileIcon';
-import { formatDate, formatFileSize, getFileExtension } from '../../lib/utils';
+import React, { useState } from 'react';
+import { useApp } from '../../context/AppContext';
+import { Download, Trash2, Edit2, Folder, FileText } from 'lucide-react';
 
 interface FileTableProps {
-  files: FileItem[];
-  onPreview: (file: FileItem) => void;
-  onHistory?: (file: FileItem) => void;
-  onComments?: (file: FileItem) => void;
-  onNavigateFolder?: (folder: FileItem) => void;
-  showSharedBy?: boolean;
-  deleted?: boolean;
+  files: any[];
+  isTrashView?: boolean;
 }
 
-export function FileTable({ files, onPreview, onHistory, onComments, onNavigateFolder, showSharedBy, deleted }: FileTableProps) {
-  const [menuFile, setMenuFile] = useState<string | null>(null);
+export const FileTable: React.FC<FileTableProps> = ({ files, isTrashView = false }) => {
+  const appContext = useApp() as any;
+  const { 
+    downloadFile, 
+    deleteFile, 
+    restoreFile, 
+    permanentDelete, 
+    renameFile, 
+    setCurrentFolderId 
+  } = appContext;
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState<string>('');
+
+  // Formatare internă pentru dimensiune (nu mai depinde de utils.ts)
+  const formatFileSize = (bytes?: number): string => {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
+  // Formatare internă pentru dată sigură (acceptă atât string cât și Date)
+  const formatDisplayDate = (dateVal: any): string => {
+    if (!dateVal) return '-';
+    try {
+      const d = dateVal instanceof Date ? dateVal : new Date(dateVal);
+      if (isNaN(d.getTime())) return String(dateVal);
+      return d.toLocaleDateString('ro-RO', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return String(dateVal);
+    }
+  };
+
+  const startRename = (file: any) => {
+    setEditingId(file.id);
+    setEditName(file.name || '');
+  };
+
+  const handleSaveRename = async (id: string) => {
+    if (editName.trim()) {
+      await renameFile(id, editName.trim());
+    }
+    setEditingId(null);
+  };
+
+  if (!files || files.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-gray-400">
+        <Folder className="w-16 h-16 mb-4 text-gray-300 stroke-1" />
+        <p className="text-base font-medium">Nu există niciun fișier sau folder aici.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-      {/* Header */}
-      <div
-        className="grid text-xs font-medium px-4 py-2.5 border-b"
-        style={{
-          borderColor: 'var(--border)',
-          color: 'var(--muted-foreground)',
-          gridTemplateColumns: showSharedBy ? '1fr 100px 80px 120px 100px 40px' : '1fr 100px 80px 120px 40px',
-          background: 'var(--muted)',
-        }}
-      >
-        <span>Name</span>
-        {showSharedBy && <span>Shared by</span>}
-        <span>Type</span>
-        <span>Size</span>
-        <span>Modified</span>
-        <span />
-      </div>
+    <div className="overflow-x-auto bg-white rounded-lg border border-gray-100 shadow-sm">
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="border-b border-gray-200 text-xs text-gray-500 uppercase tracking-wider bg-gray-50/50">
+            <th className="py-3 px-4">Nume</th>
+            <th className="py-3 px-4">Dimensiune</th>
+            <th className="py-3 px-4">Ultima modificare</th>
+            <th className="py-3 px-4 text-right">Acțiuni</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
+          {files.map((file: any) => {
+            const isFolder = file.type === 'folder' || file.isFolder;
+            const fileDate = file.updatedAt || file.createdAt || file.modified || file.date;
 
-      {files.length === 0 && (
-        <div className="py-12 text-center text-sm" style={{ color: 'var(--muted-foreground)' }}>
-          No files here
-        </div>
-      )}
+            return (
+              <tr key={file.id || Math.random()} className="hover:bg-gray-50/80 transition-colors">
+                <td className="py-3 px-4">
+                  <div className="flex items-center gap-3">
+                    {isFolder ? (
+                      <Folder className="w-5 h-5 text-blue-500 shrink-0" />
+                    ) : (
+                      <FileText className="w-5 h-5 text-gray-400 shrink-0" />
+                    )}
 
-      {files.map(file => (
-        <div
-          key={file.id}
-          className="grid items-center px-4 py-2.5 border-b last:border-0 group transition-colors cursor-pointer"
-          style={{
-            borderColor: 'var(--border)',
-            gridTemplateColumns: showSharedBy ? '1fr 100px 80px 120px 100px 40px' : '1fr 100px 80px 120px 40px',
-            opacity: deleted ? 0.65 : 1,
-          }}
-          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--muted)'}
-          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-          onClick={() => {
-            if (file.isFolder && onNavigateFolder) onNavigateFolder(file);
-            else onPreview(file);
-          }}
-        >
-          {/* Name */}
-          <div className="flex items-center gap-3 min-w-0">
-            {file.thumbnail && !file.isFolder ? (
-              <img src={file.thumbnail} alt={file.name} className="w-8 h-6 rounded object-cover shrink-0" />
-            ) : (
-              <div className="w-8 h-6 rounded flex items-center justify-center shrink-0" style={{ background: 'var(--muted)' }}>
-                <FileIcon type={file.type} size={14} />
-              </div>
-            )}
-            <span className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>{file.name}</span>
-          </div>
-
-          {/* Shared by */}
-          {showSharedBy && (
-            <span className="text-xs truncate" style={{ color: 'var(--muted-foreground)' }}>{file.sharedBy ?? '—'}</span>
-          )}
-
-          {/* Type */}
-          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-            {file.isFolder ? 'Folder' : getFileExtension(file.name)}
-          </span>
-
-          {/* Size */}
-          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{formatFileSize(file.size)}</span>
-
-          {/* Modified */}
-          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{formatDate(file.modified)}</span>
-
-          {/* Actions */}
-          <div className="relative flex justify-end" onClick={e => e.stopPropagation()}>
-            <button
-              className="p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ color: 'var(--muted-foreground)' }}
-              onClick={() => setMenuFile(menuFile === file.id ? null : file.id)}
-            >
-              <MoreHorizontal size={15} />
-            </button>
-            {menuFile === file.id && (
-              <div
-                className="absolute right-0 top-6 w-44 rounded-lg border shadow-lg z-20 py-1"
-                style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
-              >
-                {!file.isFolder && (
-                  <button className="flex items-center gap-2.5 w-full px-3 py-2 text-xs transition-colors text-left"
-                    style={{ color: 'var(--foreground)' }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--muted)'}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-                    onClick={() => { onPreview(file); setMenuFile(null); }}>
-                    <Eye size={13} /> Preview
-                  </button>
-                )}
-                <button className="flex items-center gap-2.5 w-full px-3 py-2 text-xs transition-colors text-left"
-                  style={{ color: 'var(--foreground)' }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--muted)'}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-                  onClick={() => setMenuFile(null)}>
-                  <Download size={13} /> Download
-                </button>
-                {file.versions && onHistory && (
-                  <button className="flex items-center gap-2.5 w-full px-3 py-2 text-xs transition-colors text-left"
-                    style={{ color: 'var(--foreground)' }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--muted)'}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-                    onClick={() => { onHistory(file); setMenuFile(null); }}>
-                    <History size={13} /> Version history
-                  </button>
-                )}
-                {file.comments && onComments && (
-                  <button className="flex items-center gap-2.5 w-full px-3 py-2 text-xs transition-colors text-left"
-                    style={{ color: 'var(--foreground)' }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--muted)'}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-                    onClick={() => { onComments(file); setMenuFile(null); }}>
-                    <MessageSquare size={13} /> Comments
-                  </button>
-                )}
-                <div className="my-1 border-t" style={{ borderColor: 'var(--border)' }} />
-                <button className="flex items-center gap-2.5 w-full px-3 py-2 text-xs transition-colors text-left"
-                  style={{ color: '#EF4444' }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.06)'}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-                  onClick={() => setMenuFile(null)}>
-                  <Trash2 size={13} /> {deleted ? 'Delete permanently' : 'Move to trash'}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      ))}
+                    {editingId === file.id ? (
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onBlur={() => handleSaveRename(file.id)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSaveRename(file.id)}
+                        autoFocus
+                        className="border border-blue-500 rounded px-2 py-0.5 text-sm outline-none shadow-sm"
+                      />
+                    ) : (
+                      <span
+                        className={isFolder ? 'cursor-pointer font-medium hover:underline text-blue-600' : 'text-gray-800'}
+                        onClick={() => isFolder && setCurrentFolderId(file.id)}
+                      >
+                        {file.name}
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="py-3 px-4 text-gray-500">
+                  {isFolder ? '--' : formatFileSize(file.size)}
+                </td>
+                <td className="py-3 px-4 text-gray-500">
+                  {formatDisplayDate(fileDate)}
+                </td>
+                <td className="py-3 px-4 text-right">
+                  <div className="flex items-center justify-end gap-2 text-gray-500">
+                    {!isTrashView ? (
+                      <>
+                        {!isFolder && (
+                          <button
+                            onClick={() => downloadFile(file.id, file.name)}
+                            className="p-1 hover:text-blue-600 rounded transition"
+                            title="Descarcă"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => startRename(file)}
+                          className="p-1 hover:text-green-600 rounded transition"
+                          title="Redenumește"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteFile(file.id)}
+                          className="p-1 hover:text-red-600 rounded transition"
+                          title="Mută în coș"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => restoreFile(file.id)}
+                          className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 transition"
+                        >
+                          Restaurează
+                        </button>
+                        <button
+                          onClick={() => permanentDelete(file.id)}
+                          className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded hover:bg-red-100 transition"
+                        >
+                          Șterge definitiv
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
-}
+};

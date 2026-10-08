@@ -78,4 +78,18 @@ public class SessionRepository {
             throw new RuntimeException("Eroare la revocarea sesiunilor: " + e.getMessage(), e);
         }
     }
+
+    public void revokeByToken(String token) {
+        String sql = "UPDATE sessions SET revoked = 1 WHERE token = ?";
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, token);
+            stmt.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Eroare la revocarea sesiunii: " + e.getMessage(), e);
+        }
+    }
 }

@@ -1,18 +1,16 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, User } from 'lucide-react';
 import { AuthLayout } from './AuthLayout';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/apiClient';
 
-export function Register() {
+export function Register({ onNavigateToLogin }: { onNavigateToLogin?: () => void }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { setIsAuthenticated } = useApp();
-  const navigate = useNavigate();
+  const { login } = useApp();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,10 +19,9 @@ export function Register() {
     try {
       // backend-ul nu are inca 2FA implementat (etapa 2 din plan) — dupa
       // register mergem direct la login, nu la pagina mock /2fa
-      await api.register(email, password);
-      await api.login(email, password);
-      setIsAuthenticated(true);
-      navigate('/dashboard');
+      const username = email.trim();
+      await api.register(username, password);
+      login(await api.login(username, password));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Înregistrare eșuată');
     } finally {
@@ -57,7 +54,7 @@ export function Register() {
           <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--foreground)' }}>Email</label>
           <div className="relative">
             <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted-foreground)' }} />
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com"
+            <input type="text" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com"
               className="w-full pl-9 pr-3 py-2.5 text-sm rounded-lg border outline-none"
               style={inputStyle}
               onFocus={e => e.target.style.borderColor = 'var(--primary)'}
@@ -86,7 +83,7 @@ export function Register() {
       </form>
       <p className="mt-6 text-center text-sm" style={{ color: 'var(--muted-foreground)' }}>
         Already have an account?{' '}
-        <Link to="/login" className="font-medium" style={{ color: 'var(--primary)' }}>Sign in</Link>
+        <button type="button" onClick={onNavigateToLogin} className="font-medium" style={{ color: 'var(--primary)' }}>Sign in</button>
       </p>
     </AuthLayout>
   );
