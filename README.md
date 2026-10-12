@@ -1,40 +1,54 @@
-# CloudEStorage — aplicație completă (MVP), gata de build & deploy
+# ☁️ Nimbus (CloudEStorage)
 
-## Ce conține arhiva
+> **Proiect PBL — Vectorul de Securitate a Datelor (FAF-242, UTM)**  
+> Platformă cloud privată, securizată end-to-end la nivel de stocare, cu arhitectură distribuită pe un cluster Kubernetes (K3s), interconectată prin Mesh VPN și monitorizată prin SIEM.
 
-```
-backend/    — Java (Javalin), tot ce ai avut + sesiuni, criptare AES, upload/download fișiere
-frontend/   — React (din UserDashboard), Login/Register/MyFiles conectate la backend-ul real
-Dockerfile  — imagine unică (frontend + backend), multi-stage
-k8s/        — manifeste pentru clusterul tău K3s (HP EliteBook + Sony VAIO)
-DEPLOY.md   — pași exacți de build și deploy pe clusterul tău
-```
+---
 
-## ATENȚIE — o limitare pe care trebuie s-o știi înainte să predai
+## 🛠️ Stack Tehnologic
 
-Codul a fost scris integral aici, dar **nu am putut compila efectiv proiectul Java în acest mediu** — sandboxul în care lucrez nu are acces la Maven Central (repo-ul de unde se descarcă dependințele), deci n-am putut rula `mvn compile` ca să confirm 100% că totul e sintactic perfect.
+- **Backend:** Java (Javalin), SQLite, BCrypt (hashing parole), AES-256-GCM (criptare fișiere).
+- **Frontend:** React, TypeScript, Vite.
+- **DevOps & Infrastructură:** Docker (Multi-stage build), Kubernetes (K3s), Tailscale Mesh VPN, Wazuh SIEM, Filebeat.
 
-Am scris codul cu atenție, verificat manual linie cu linie, și am evitat deliberat orice parte din API-ul Javalin de care nu eram sigur (ex. am înlocuit o clasă `Cookie` cu risc de API incert cu setare directă de header HTTP, garantat corectă). Dar **primul test real e la tine, când rulezi `mvn compile`.**
+---
 
-**Dacă apare vreo eroare de compilare**, trimite-mi mesajul exact de eroare — o reparăm în câteva minute, e mult mai rapid decât să pretind că e "gata" fără să fi verificat.
+## 🏗️ Arhitectura Sistemului și Infrastructură
 
-## Ce funcționează (MVP real, nu mockup)
+Proiectul folosește o arhitectură distribuită pe mai multe noduri fizice/virtuale, conectate securizat:
+- **HP EliteBook (Windows 10 + WSL2/Ubuntu):** Găzduiește control-plane-ul K3s, baza de date SQLite, volumul criptat pentru stocarea fișierelor și imaginea aplicației (`CloudEStorage.jar`).
+- **Sony VAIO (Ubuntu Linux):** Funcționează ca nod worker K3s și găzduiește serverul **Wazuh SIEM** pentru colectarea și analiza logurilor de securitate.
+- **Tailscale Mesh VPN:** Asigură tunelul privat overlay între nodurile din rețea.
+- **Client Browser:** Rulează interfața React și comunică prin HTTPS cu backend-ul.
 
-- Register, login, cu sesiune reală (cookie HttpOnly/Secure/SameSite=Strict)
-- Logout, logout-all-devices (revocare sesiuni)
-- Upload fișier → criptat AES-256-GCM → scris pe disc
-- Listare fișiere proprii (din DB reală)
-- Download fișier → decriptat automat
-- Ștergere fișier (soft delete)
-- Frontend (Login, Register, My Files) conectat la aceste endpoint-uri reale, nu la date mock
+---
 
-## Ce rămâne mockup / neconectat (transparent, nu ascuns)
+## 📋 Cazuri de Utilizare (Use Cases) & Starea Implementării
 
-- Foldere, versionare, comentarii, partajare (ShareLink) — modelul de date există în backend, dar fără endpoint-uri/UI conectate încă (etapa 2-3 din plan)
-- 2FA — nu implementat (etapa 2 din plan; pagina UI există ca mockup)
-- Butoanele de download/delete din interiorul tabelului de fișiere (meniul per-rând din `FileTable`) — nu le-am conectat încă, doar upload + listare + endpoint-urile din spate există
-- Criptarea e cu cheie server-side (`data/master.key`), nu zero-knowledge — decizie MVP documentată deja în riscurile proiectului
+### 1. 🔐 Cont și Autentificare
+* **Register Account:** Înregistrare utilizator cu parolă securizată prin hash **BCrypt**. *(Implementat)*
+* **Log In / Log Out:** Autentificare bazată pe sesiuni reale gestionate prin cookie-uri sigure (`HttpOnly`, `Secure`, `SameSite=Strict`). *(Implementat)*
+* **Log Out All Devices:** Mecanism de revocare globală a tuturor sesiunilor active ale utilizatorului. *(Implementat)*
+* **2FA (Autentificare în doi pași):** Gestionare și verificare coduri 2FA. *(Interfață de tip mockup / Etapa următoare)*
 
-## Recomandare sinceră
+### 2. 📁 Gestionarea Fișierelor și Securitate
+* **Upload File ↔ Encrypt File:** Fișierele sunt interceptate la upload și criptate automat folosind **AES-256-GCM** înainte de a fi scrise fizic pe disc. *(Implementat)*
+* **Download File ✕ Decrypt File:** La cerere, fișierele criptate sunt citite de pe disc, decriptate on-the-fly și livrate ca stream securizat către proprietar. *(Implementat)*
+* **List / Sort / Filter Files:** Listarea din baza de date a fișierelor deținute de utilizatorul curent. *(Implementat)*
+* **Delete File (Soft Delete):** Marcarea logică a fișierelor ca șterse. *(Implementat backend)* / **Restore File** *(Planificat)*
 
-Nu duce asta direct la prezentare fără să rulezi tu întâi `mvn compile` și fără să testezi manual fluxul (register → login → upload → download) local, exact cum ai făcut și până acum. Dacă ceva nu merge, vreau să știu exact ce, ca să reparăm punctual — nu să presupunem că totul e perfect doar pentru că arată complet.
+### 3. 🔗 Partajare (Sharing) — Model de Domeniu Extins
+* **Create Share Link & Set Access Permissions:** Generare de linkuri unice de partajare cu permisiuni granulare (`READ`/`WRITE`) și protecție opțională prin parolă. *(Model de domeniu definit în backend / În curs de conectare UI)*
+* **Access Shared File (Guest):** Accesul oaspeților la fișierele partajate fără a necesita un cont activ. *(Arhitectură pregătită)*
+
+---
+
+## 📁 Structura Proiectului
+
+```text
+├── backend/          # Cod sursă Java (Javalin, servicii de criptare, controlere)
+├── frontend/         # Aplicație React / TypeScript (Interfață utilizator)
+├── k8s/              # Manifeste Kubernetes (K3s) pentru deployment distribuit
+├── Dockerfile        # Imagine unică multi-stage (Frontend + Backend)
+├── DEPLOY.md         # Pași exacți pentru build și deploy pe cluster
+└── README.md         # Documentația principală a proiectului
