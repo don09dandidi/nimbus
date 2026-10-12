@@ -23,23 +23,29 @@ Proiectul folosește o arhitectură distribuită pe mai multe noduri fizice/virt
 
 ---
 
-## 📋 Cazuri de Utilizare (Use Cases) & Starea Implementării
+## 📋 Cazuri de Utilizare și Funcționalități (Use Cases)
 
-### 1. 🔐 Cont și Autentificare
-* **Register Account:** Înregistrare utilizator cu parolă securizată prin hash **BCrypt**. *(Implementat)*
-* **Log In / Log Out:** Autentificare bazată pe sesiuni reale gestionate prin cookie-uri sigure (`HttpOnly`, `Secure`, `SameSite=Strict`). *(Implementat)*
-* **Log Out All Devices:** Mecanism de revocare globală a tuturor sesiunilor active ale utilizatorului. *(Implementat)*
-* **2FA (Autentificare în doi pași):** Gestionare și verificare coduri 2FA. *(Interfață de tip mockup / Etapa următoare)*
+### 1. 🖥️ Interacțiunea cu Aplicația & Gestionarea Contului
+- **Register Account:** Crearea unui cont nou de utilizator în sistem cu hashing de parolă. *(Implementat)*
+- **Log In / Log Out:** Autentificare în interfața web și închiderea sesiunii curente. *(Implementat)*
+- **Log Out All Devices:** Revocarea globală a tuturor sesiunilor active din motive de securitate. *(Implementat)*
+- **Navigare și Dashboard:** Accesarea panoului principal de control pentru gestionarea resurselor proprii. *(Implementat)*
 
-### 2. 📁 Gestionarea Fișierelor și Securitate
-* **Upload File ↔ Encrypt File:** Fișierele sunt interceptate la upload și criptate automat folosind **AES-256-GCM** înainte de a fi scrise fizic pe disc. *(Implementat)*
-* **Download File ✕ Decrypt File:** La cerere, fișierele criptate sunt citite de pe disc, decriptate on-the-fly și livrate ca stream securizat către proprietar. *(Implementat)*
-* **List / Sort / Filter Files:** Listarea din baza de date a fișierelor deținute de utilizatorul curent. *(Implementat)*
-* **Delete File (Soft Delete):** Marcarea logică a fișierelor ca șterse. *(Implementat backend)* / **Restore File** *(Planificat)*
+### 2. 📁 Gestionarea Fișierelor (Interacțiune & CRUD)
+- **Upload File:** Încărcarea fișierelor din browser direct în cloud-ul privat. *(Implementat)*
+- **List / Sort / Filter Files:** Interacțiunea cu tabelul de fișiere din interfață — listare, sortare după criterii și filtrare rapidă. *(Implementat)*
+- **Download File:** Descărcarea fișierelor stocate înapoi pe dispozitivul utilizatorului. *(Implementat)*
+- **Delete / Restore File:** Ștergerea logică (*soft delete*) a fișierelor din interfață și opțiunea de restaurare. *(Implementat în backend / În curs de integrare UI)*
 
-### 3. 🔗 Partajare (Sharing) — Model de Domeniu Extins
-* **Create Share Link & Set Access Permissions:** Generare de linkuri unice de partajare cu permisiuni granulare (`READ`/`WRITE`) și protecție opțională prin parolă. *(Model de domeniu definit în backend / În curs de conectare UI)*
-* **Access Shared File (Guest):** Accesul oaspeților la fișierele partajate fără a necesita un cont activ. *(Arhitectură pregătită)*
+### 3. 🔒 Securitate Avansată și Criptare (Backend & End-to-End)
+- **Password Hashing:** Securizarea parolelor utilizatorilor folosind algoritmul **BCrypt**. *(Implementat)*
+- **Encryption / Decryption (AES-256-GCM):** Criptarea automată a fișierelor la upload și decriptarea on-the-fly la download. *(Implementat)*
+- **Sesiuni Sigure:** Utilizarea cookie-urilor de sesiune cu flag-urile `HttpOnly`, `Secure` și `SameSite=Strict`. *(Implementat)*
+- **2FA (Autentificare în doi pași):** Flux suplimentar de verificare a identității. *(Mockup UI / Etapa următoare)*
+
+### 4. 🔗 Partajare Extinsă (Sharing)
+- **Create Share Link & Set Permissions:** Generare de linkuri unice de partajare cu permisiuni granulare (`READ`/`WRITE`) și parolă opțională. *(Model definit în backend)*
+- **Access Shared File (Guest):** Permiterea oaspeților să acceseze fișiere partajate fără a deține un cont. *(Arhitectură pregătită)*
 
 ---
 
